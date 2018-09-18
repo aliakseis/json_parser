@@ -107,14 +107,15 @@ bool JsonParser::parseString(T& result)
     }
 
     std::string value;
-    std::string contents;
 
     bool stop;
     do
     {
+        std::string contents;
         std::getline(m_input, contents, '"') || error("Unclosed string");
         const auto begin = contents.rbegin();
-        const auto cnt = std::find_if(begin, contents.rend(), [](char ch) { return ch != '\\'; }) - begin;
+        const auto cnt 
+            = std::find_if(begin, contents.rend(), [](char ch) { return ch != '\\'; }) - begin;
         stop = !(cnt & 1);
         if (!stop)
             contents[contents.size() - 1] = '"';
