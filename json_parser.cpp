@@ -3,22 +3,26 @@
 
 #include "json_parser.h"
 
-#include <iostream>
 #include <cctype>
 #include <climits>
 #include <algorithm>
 #include <assert.h>
 
 
-template<> struct JsonParser::Traits<std::map<std::string, std::any> >
+namespace {
+
+template<typename T> struct Traits {};
+
+template<> struct Traits<std::map<std::string, std::any> >
 {
     enum { OPENING = '{', CLOSING = '}' };
 };
-template<> struct JsonParser::Traits<std::vector<std::any> >
+template<> struct Traits<std::vector<std::any> >
 {
     enum { OPENING = '[', CLOSING = ']' };
 };
 
+} // namespace
 
 
 JsonParser::JsonParser(std::istream& input)
@@ -26,26 +30,10 @@ JsonParser::JsonParser(std::istream& input)
 {
 }
 
-
 JsonParser::~JsonParser()
 {
 }
 
-bool JsonParser::parse(std::any& result)
-{
-    try
-    {
-        result = parseValue();
-    }
-    catch (const char* errorDescription)
-    {
-        std::cerr << "JSON parse error: " << errorDescription << '\n'; // TODO additional info
-        return false;
-    }
-
-    // TODO check if the rest is missing
-    return true;
-}
 
 template<typename T>
 bool JsonParser::parseInstance(std::any& result)
@@ -65,10 +53,7 @@ bool JsonParser::parseInstance(std::any& result)
             break;
         }
     }
-    if (moreMembers)
-    {
-        error("Missing member");
-    }
+    moreMembers && error("Missing member");
     skip(Traits<T>::CLOSING) || error("Unclosed instance");
 
     result = object;
@@ -83,13 +68,13 @@ bool JsonParser::parseMember(std::map<std::string, std::any>& object)
         return false;
     }
     skip(':') || error("Expecting object separator");
-    object[key] = parseValue();
+    object[key] = parse();
     return true;
 }
 
 bool JsonParser::parseMember(std::vector<std::any>& array)
 {
-    std::any value = parseValue(true);
+    std::any value = parse(true);
     if (!value.has_value())
     {
         return false;
@@ -127,7 +112,7 @@ bool JsonParser::parseString(T& result)
     return true;
 }
 
-std::any JsonParser::parseValue(bool skipError)
+std::any JsonParser::parse(bool skipError)
 {
     std::any result;
     trimSpace();
@@ -242,63 +227,5 @@ bool JsonParser::parseKeyword(std::any& result)
 
 bool JsonParser::error(const char* description)const
 {
-    throw description;
+    throw std::runtime_error(description);
 }
-
-
-int main()
-{
-    auto parsed = parseJson(R"({
-"data": [{
-    "type": "articles",
-        "id" : "1",
-        "attributes" : {
-        "title": "JSON API paints my bikeshed!",
-            "body" : "The shortest article. Ever.",
-            "created" : "2015-05-22T14:56:29.000Z",
-            "updated" : "2015-05-22T14:56:28.000Z"
-    },
-        "relationships": {
-            "author": {
-                "data": {"id": "42", "type" : "people"}
-            }
-        }
-}],
-"extra": [],
-"included": [
-{
-    "type": "people",
-        "id" : "42",
-        "attributes" : {
-        "name": "John",
-            "age" : 80,
-            "gender" : "male",
-            "info" : "q\\\"we\"r\\\ty\\"
-    }
-}
-]
-})");
-
-    const auto& document = std::any_cast<const std::map<std::string, std::any>&>(parsed);
-    if (auto included = document.find("included"); included != document.end())
-    {
-        const auto& included0 = std::any_cast<const std::map<std::string, std::any>&>(
-            std::any_cast<const std::vector<std::any>&>(included->second)[0]);
-        if (auto it = included0.find("attributes"); it != included0.end())
-        {
-            const auto& attributes = std::any_cast<const std::map<std::string, std::any>&>(it->second);
-            if (auto age = attributes.find("age"); age != attributes.end())
-            {
-                int value = std::any_cast<int>(age->second);
-                std::cout << value << '\n';
-            }
-            if (auto info = attributes.find("info"); info != attributes.end())
-            {
-                std::string value = std::any_cast<std::string>(info->second);
-                std::cout << value << '\n';
-            }
-        }
-    }
-    return 0;
-}
-

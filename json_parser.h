@@ -16,13 +16,9 @@ public:
     JsonParser(std::istream& input);
     ~JsonParser();
 
-    bool parse(std::any& result);
+    std::any parse(bool skipError = false);
 
 private:
-    template<typename T> struct Traits {};
-
-    std::any parseValue(bool skipError = false);
-
     bool error(const char* description)const;
     bool scan(char ch);
     bool skip(char ch); // trims white space on both sides; for delimiters only
@@ -46,8 +42,6 @@ private:
 
 inline std::any parseJson(const std::string& data)
 {
-    std::any result;
     std::istringstream iss(data);
-    JsonParser(iss).parse(result);
-    return result;
+    return JsonParser(iss).parse();
 }
