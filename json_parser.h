@@ -19,7 +19,6 @@ public:
     std::any parse(bool skipError = false);
 
 private:
-    bool error(const char* description)const;
     bool scan(char ch);
     bool skip(char ch); // trims white space on both sides; for delimiters only
     void trimSpace();

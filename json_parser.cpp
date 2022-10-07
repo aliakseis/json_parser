@@ -11,6 +11,89 @@
 
 namespace {
 
+bool error(const char* description)
+{
+    throw std::runtime_error(description);
+}
+
+
+int from_hex(char ch)
+{
+    return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
+}
+
+std::string unescapeString(const std::string& s)
+{
+    std::istringstream ss(s);
+    std::string result;
+    std::getline(ss, result, '\\');
+    std::string buffer;
+
+    bool doubleEscape = false;
+
+    while (std::getline(ss, buffer, '\\'))
+    {
+        if (buffer.empty())
+        {
+            if (!doubleEscape)
+            {
+                result += '\\';
+                doubleEscape = true;
+            }
+            else
+                doubleEscape = false;
+            continue;
+        }
+
+        doubleEscape = false;
+
+        const char ch = buffer[0];
+        if (ch == 'u')
+        {
+            buffer.size() >= 5 || error("Invalid unicode symbol");
+            const int ord = (from_hex(buffer[0]) << 12) | (from_hex(buffer[1]) << 8) | (from_hex(buffer[2]) << 4) | from_hex(buffer[2]);
+            // http://www.herongyang.com/Unicode/UTF-8-UTF-8-Encoding-Algorithm.html
+            if (ord < 0x80) {
+                result += char(ord >> 0 & 0x7F | 0x00);
+            }
+            else if (ord < 0x0800) {
+                result += char(ord >> 6 & 0x1F | 0xC0);
+                result += char(ord >> 0 & 0x3F | 0x80);
+            }
+            else if (ord < 0x010000) {
+                result += char(ord >> 12 & 0x0F | 0xE0);
+                result += char(ord >> 6 & 0x3F | 0x80);
+                result += char(ord >> 0 & 0x3F | 0x80);
+            }
+            else if (ord < 0x110000) {
+                result += char(ord >> 18 & 0x07 | 0xF0);
+                result += char(ord >> 12 & 0x3F | 0x80);
+                result += char(ord >> 6 & 0x3F | 0x80);
+                result += char(ord >> 0 & 0x3F | 0x80);
+            }
+            else {
+                error("Invalid uincode symbol");
+            }
+
+            result += buffer.substr(5);
+        }
+        else
+        {
+            switch (ch) {
+            case  'b': result += '\b'; break;
+            case  'f': result += '\f'; break;
+            case  'n': result += '\n'; break;
+            case  'r': result += '\r'; break;
+            case  't': result += '\t'; break;
+                // Pass undefined escape sequences as the escaped character.
+            default: result += ch;
+            }
+            result += buffer.substr(1);
+        }
+    }
+    return result;
+}
+
 template<typename T> struct Traits {};
 
 template<> struct Traits<std::map<std::string, std::any> >
@@ -104,11 +187,10 @@ bool JsonParser::parseString(T& result)
         stop = !(cnt & 1);
         if (!stop)
             contents[contents.size() - 1] = '"';
-        // TODO unescape
         value += contents;
     } while (!stop);
 
-    result = value;
+    result = unescapeString(value);
     return true;
 }
 
@@ -223,9 +305,4 @@ bool JsonParser::parseKeyword(std::any& result)
 
     error("Unexpected keyword");
     return false;
-}
-
-bool JsonParser::error(const char* description)const
-{
-    throw std::runtime_error(description);
 }
