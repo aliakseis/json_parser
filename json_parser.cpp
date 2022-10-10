@@ -51,7 +51,7 @@ std::string unescapeString(const std::string& s)
         if (ch == 'u')
         {
             buffer.size() >= 5 || error("Invalid unicode symbol");
-            const int ord = (from_hex(buffer[0]) << 12) | (from_hex(buffer[1]) << 8) | (from_hex(buffer[2]) << 4) | from_hex(buffer[2]);
+            const int ord = (from_hex(buffer[1]) << 12) | (from_hex(buffer[2]) << 8) | (from_hex(buffer[3]) << 4) | from_hex(buffer[4]);
             // http://www.herongyang.com/Unicode/UTF-8-UTF-8-Encoding-Algorithm.html
             if (ord < 0x80) {
                 result += char(ord >> 0 & 0x7F | 0x00);

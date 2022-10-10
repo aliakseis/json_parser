@@ -2,8 +2,14 @@
 
 #include <iostream>
 
+#include <windows.h>
+
+#pragma execution_character_set( "utf-8" )
+
 int main()
 {
+    SetConsoleOutputCP(65001);
+
     try {
         auto parsed = parseJson(
  R"({
@@ -33,10 +39,11 @@ int main()
             "type":"people",
             "id":"42",
             "attributes":{
-                "name":"John",
+                "lastName":"T\u00e4rn\u00e4by",
+                "firstName":"Bj\u00f6rn",
                 "age":80,
                 "gender":"male",
-                "info":"q\\\"we\"r\\\ty\\"
+                "info":"\u0139q\\\"we\"r\\\ty\\"
             }
         }
     ]
@@ -50,6 +57,16 @@ int main()
             if (auto it = included0.find("attributes"); it != included0.end())
             {
                 const auto& attributes = std::any_cast<const std::map<std::string, std::any>&>(it->second);
+                if (auto lastName = attributes.find("lastName"); lastName != attributes.end())
+                {
+                    std::string value = std::any_cast<std::string>(lastName->second);
+                    std::cout << value << '\n';
+                }
+                if (auto firstName = attributes.find("firstName"); firstName != attributes.end())
+                {
+                    std::string value = std::any_cast<std::string>(firstName->second);
+                    std::cout << value << '\n';
+                }
                 if (auto age = attributes.find("age"); age != attributes.end())
                 {
                     int value = std::any_cast<int>(age->second);
