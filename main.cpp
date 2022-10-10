@@ -43,7 +43,7 @@ int main()
                 "firstName":"Bj\u00f6rn",
                 "age":80,
                 "gender":"male",
-                "info":"\u0139q\\\"we\"r\\\ty\\"
+                "info":"\\trouble \u0139q\\\"we\"r\\\ty\\"
             }
         }
     ]

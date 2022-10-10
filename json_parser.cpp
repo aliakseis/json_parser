@@ -45,7 +45,12 @@ std::string unescapeString(const std::string& s)
             continue;
         }
 
-        doubleEscape = false;
+        if (doubleEscape)
+        {
+            doubleEscape = false;
+            result += buffer;
+            continue;
+        }
 
         const char ch = buffer[0];
         if (ch == 'u')
