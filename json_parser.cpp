@@ -6,7 +6,8 @@
 #include <cctype>
 #include <climits>
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
+#include <sstream>
 
 
 namespace {
@@ -77,7 +78,7 @@ std::string unescapeString(const std::string& s)
                 result += char(ord >> 0 & 0x3F | 0x80);
             }
             else {
-                error("Invalid uincode symbol");
+                error("Invalid unicode symbol");
             }
 
             result += buffer.substr(5);
@@ -310,4 +311,10 @@ bool JsonParser::parseKeyword(std::any& result)
 
     error("Unexpected keyword");
     return false;
+}
+
+std::any parseJson(const std::string& data)
+{
+    std::istringstream iss(data);
+    return JsonParser(iss).parse();
 }

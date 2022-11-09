@@ -7,7 +7,6 @@
 #include <vector>
 #include <memory>
 #include <istream>
-#include <sstream>
 
 
 class JsonParser
@@ -39,8 +38,4 @@ private:
 }; // class JsonParser
 
 
-inline std::any parseJson(const std::string& data)
-{
-    std::istringstream iss(data);
-    return JsonParser(iss).parse();
-}
+std::any parseJson(const std::string& data);
