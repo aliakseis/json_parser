@@ -1,41 +1,17 @@
 ﻿#pragma once
 
-#include <any>
+// https://github.com/aliakseis/json_parser
 
+#include <any>
 #include <string>
+#include <string_view>
 #include <map>
 #include <vector>
 #include <memory>
 #include <istream>
 
-
-class JsonParser
-{
-public:
-    JsonParser(std::istream& input);
-    ~JsonParser();
-
-    std::any parse(bool skipError = false);
-
-private:
-    bool scan(char ch);
-    bool skip(char ch); // trims white space on both sides; for delimiters only
-    void trimSpace();
-
-    template<typename T>
-    bool parseInstance(std::any& result);
-
-    bool parseMember(std::map<std::string, std::any>& object);
-    bool parseMember(std::vector<std::any>& array);
-
-    template<typename T>
-    bool parseString(T& result);
-    bool parseNumber(std::any& result);
-    bool parseKeyword(std::any& result);
-
-private:
-    std::istream& m_input;
-}; // class JsonParser
-
-
-std::any parseJson(const std::string& data);
+// Result consists of std::map<std::string, std::any>, 
+// std::vector<std::any>, std::string, double, int and bool.
+// Throws std::runtime_error on failure.
+std::any parseJson(std::istream& input, bool skipError = false);
+std::any parseJson(const std::string_view& input, bool skipError = false);

@@ -1,5 +1,4 @@
-﻿// json_parser.cpp : Defines the entry point for the console application.
-//
+﻿// https://github.com/aliakseis/json_parser
 
 #include "json_parser.h"
 
@@ -8,6 +7,8 @@
 #include <algorithm>
 #include <cassert>
 #include <sstream>
+
+#include <streambuf>
 
 
 namespace {
@@ -111,7 +112,34 @@ template<> struct Traits<std::vector<std::any> >
     enum { OPENING = '[', CLOSING = ']' };
 };
 
-} // namespace
+
+class JsonParser
+{
+public:
+    JsonParser(std::istream& input);
+    ~JsonParser();
+
+    std::any parse(bool skipError = false);
+
+private:
+    bool scan(char ch);
+    bool skip(char ch); // trims white space on both sides; for delimiters only
+    void trimSpace();
+
+    template<typename T>
+    bool parseInstance(std::any& result);
+
+    bool parseMember(std::map<std::string, std::any>& object);
+    bool parseMember(std::vector<std::any>& array);
+
+    template<typename T>
+    bool parseString(T& result);
+    bool parseNumber(std::any& result);
+    bool parseKeyword(std::any& result);
+
+private:
+    std::istream& m_input;
+}; // class JsonParser
 
 
 JsonParser::JsonParser(std::istream& input)
@@ -271,7 +299,7 @@ bool JsonParser::parseNumber(std::any& result)
             result = value;
         }
     }
-    catch (std::exception&)
+    catch (const std::exception&)
     {
         return false;
     }
@@ -313,8 +341,53 @@ bool JsonParser::parseKeyword(std::any& result)
     return false;
 }
 
-std::any parseJson(const std::string& data)
+
+class ByteStreamBuffer : public std::streambuf
 {
-    std::istringstream iss(data);
-    return JsonParser(iss).parse();
+public:
+    ByteStreamBuffer(char* base, size_t length)
+    {
+        setg(base, base, base + length);
+    }
+
+protected:
+    pos_type seekoff(off_type offset,
+        std::ios_base::seekdir dir,
+        std::ios_base::openmode) override
+    {
+        char* whence = eback();
+        if (dir == std::ios_base::cur)
+        {
+            whence = gptr();
+        }
+        else if (dir == std::ios_base::end)
+        {
+            whence = egptr();
+        }
+        char* to = whence + offset;
+
+        // check limits
+        if (to >= eback() && to <= egptr())
+        {
+            setg(eback(), to, egptr());
+            return gptr() - eback();
+        }
+
+        return -1;
+    }
+};
+
+} // namespace
+
+
+std::any parseJson(std::istream& input, bool skipError /*= false*/)
+{
+    return JsonParser(input).parse(skipError);
+}
+
+std::any parseJson(const std::string_view& input, bool skipError /*= false*/)
+{
+    ByteStreamBuffer buf(const_cast<char*>(input.data()), input.length());
+    std::istream is(&buf);
+    return parseJson(is, skipError);
 }
