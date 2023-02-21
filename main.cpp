@@ -69,7 +69,7 @@ int main()
                 }
                 if (auto age = attributes.find("age"); age != attributes.end())
                 {
-                    int value = std::any_cast<int>(age->second);
+                    int value = static_cast<int>(std::any_cast<double>(age->second));
                     std::cout << value << '\n';
                 }
                 if (auto info = attributes.find("info"); info != attributes.end())
