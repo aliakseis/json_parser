@@ -24,12 +24,19 @@ int from_hex(char ch)
     return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
 }
 
-std::string unescapeString(const std::string& s)
+void unescapeSubstring(const std::string& s, std::string& result)
 {
     std::istringstream ss(s);
-    std::string result;
-    std::getline(ss, result, '\\');
     std::string buffer;
+    std::getline(ss, buffer, '\\');
+    if (result.empty())
+    {
+        result = std::move(buffer);
+    }
+    else
+    {
+        result += buffer;
+    }
 
     bool doubleEscape = false;
 
@@ -98,7 +105,6 @@ std::string unescapeString(const std::string& s)
             result += buffer.substr(1);
         }
     }
-    return result;
 }
 
 template<typename T> struct Traits {};
@@ -216,10 +222,10 @@ bool JsonParser::parseString(T& result)
         stop = !(cnt & 1);
         if (!stop)
             contents[contents.size() - 1] = '"';
-        value += contents;
+        unescapeSubstring(contents, value);
     } while (!stop);
 
-    result = unescapeString(value);
+    result = std::move(value);
     return true;
 }
 
