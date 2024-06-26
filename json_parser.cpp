@@ -26,23 +26,20 @@ int from_hex(char ch)
 
 void unescapeSubstring(const std::string& s, std::string& result)
 {
-    std::istringstream ss(s);
-    std::string buffer;
-    std::getline(ss, buffer, '\\');
-    if (result.empty())
-    {
-        result = std::move(buffer);
-    }
-    else
-    {
-        result += buffer;
-    }
+    const auto end = s.end();
+
+    auto posEnd = std::find(s.begin(), end, '\\');
+
+    result.insert(result.end(), s.begin(), posEnd);
 
     bool doubleEscape = false;
 
-    while (std::getline(ss, buffer, '\\'))
+    while (posEnd != end)
     {
-        if (buffer.empty())
+        auto pos = std::next(posEnd);
+        posEnd = std::find(pos, end, '\\');
+
+        if (pos == posEnd)
         {
             if (!doubleEscape)
             {
@@ -57,15 +54,15 @@ void unescapeSubstring(const std::string& s, std::string& result)
         if (doubleEscape)
         {
             doubleEscape = false;
-            result += buffer;
+            result.insert(result.end(), pos, posEnd);
             continue;
         }
 
-        const char ch = buffer[0];
+        const char ch = pos[0];
         if (ch == 'u')
         {
-            buffer.size() >= 5 || error("Invalid unicode symbol");
-            const int ord = (from_hex(buffer[1]) << 12) | (from_hex(buffer[2]) << 8) | (from_hex(buffer[3]) << 4) | from_hex(buffer[4]);
+            (posEnd - pos >= 5) || error("Invalid unicode symbol");
+            const int ord = (from_hex(pos[1]) << 12) | (from_hex(pos[2]) << 8) | (from_hex(pos[3]) << 4) | from_hex(pos[4]);
             // http://www.herongyang.com/Unicode/UTF-8-UTF-8-Encoding-Algorithm.html
             if (ord < 0x80) {
                 result += char(ord >> 0 & 0x7F | 0x00);
@@ -89,7 +86,7 @@ void unescapeSubstring(const std::string& s, std::string& result)
                 error("Invalid unicode symbol");
             }
 
-            result += buffer.substr(5);
+            result.insert(result.end(), pos + 5, posEnd);
         }
         else
         {
@@ -102,7 +99,7 @@ void unescapeSubstring(const std::string& s, std::string& result)
                 // Pass undefined escape sequences as the escaped character.
             default: result += ch;
             }
-            result += buffer.substr(1);
+            result.insert(result.end(), pos + 1, posEnd);
         }
     }
 }
