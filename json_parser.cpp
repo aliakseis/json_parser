@@ -24,11 +24,17 @@ int from_hex(char ch)
     return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
 }
 
-void unescapeSubstring(const std::string& s, std::string& result)
+void unescapeSubstring(std::string&& s, std::string& result)
 {
     const auto end = s.end();
 
     auto posEnd = std::find(s.begin(), end, '\\');
+
+    if (result.empty() && posEnd == end)
+    {
+        result = std::move(s);
+        return;
+    }
 
     result.insert(result.end(), s.begin(), posEnd);
 
@@ -194,7 +200,7 @@ bool JsonParser::parseMember(std::vector<std::any>& array)
     {
         return false;
     }
-    array.push_back(value);
+    array.push_back(std::move(value));
     return true;
 }
 
@@ -219,7 +225,7 @@ bool JsonParser::parseString(T& result)
         stop = !(cnt & 1);
         if (!stop)
             contents[contents.size() - 1] = '"';
-        unescapeSubstring(contents, value);
+        unescapeSubstring(std::move(contents), value);
     } while (!stop);
 
     result = std::move(value);
